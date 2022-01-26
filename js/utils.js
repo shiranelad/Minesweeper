@@ -1,11 +1,7 @@
 'use strict'
 
 function createMat(num) {
-  gLevel = {
-    SIZE: num,
-    MINES: (num === 4) ? 2 : ((num === 8) ? 12 : 30)
-  }
-
+  
   var mat = []
   const ROWS = num;
   const COLS = num;
@@ -26,9 +22,11 @@ function renderBoard(board, selector) {
     for (var j = 0; j < board[0].length; j++) {
       var cell = board[i][j];
       //TODO:delete
-      console.log(cell.isMine)
-      var cellClass = `cell cell-${i}-${j}`;
-      strHTML += `\t\t\t<td class="${cellClass}" onclick="cellClicked(${i},${j})">${(cell.isMine) ? BOMB : EMPTY}</td>\n`;
+      var cellClass = `cell cell-${i}-${j} `;
+      cellClass += (!cell.isShown) ? 'unrevealed ' : '';
+      cellClass += (cell.isMine && cell.isShown) ? 'mine ' : 'no-content ';
+      strHTML += `\t\t\t<td class="${cellClass}" onclick="cellClicked(this,${i},${j})" oncontextmenu="cellMarked(this,${i},${j})">
+      ${(cell.isMine && cell.isShown) ? MINE : ""}</td>\n`;
     }
 
     strHTML += '\t\t</tr>\n'

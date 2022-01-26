@@ -3,7 +3,6 @@ body{
     font-family: 'Lucida Sans';
     color: cadetblue;
     background-color: rgb(19, 68, 77,0.9);
-
 }
 
 table{
@@ -22,7 +21,24 @@ td{
     font-size:24px;
     font-weight: bold;
     width:25%;
+    overflow: hidden;
+    text-align: center;
+    vertical-align: middle;
 }
+
+
+.no-content:after{
+    content: 'empty';
+    visibility: hidden;
+}
+
+.mine{
+    background-color: rgb(202, 47, 47);
+}
+
+/* tr{
+    white-space: nowrap;
+} */
 
 .num-clicked{
     background-color: rgb(240, 240, 240,0.89);
@@ -53,7 +69,11 @@ td{
     min-height: 40px;
 }
 
-.next-num{
+/* .next-num{
     font-size: 35px;
     font-weight: bold;
+} */
+
+.unrevealed{
+    background-color: rgba(128, 128, 128, 0.527);
 }
