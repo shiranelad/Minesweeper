@@ -34,7 +34,7 @@ function buildBoard(num) {
     }
     
     // Place the mines
-    //TODO: countNegs(cell with isMine:true) and update cell object with mindesAroundCount 
+    //countNegs(cell with isMine:true) and update cell object with mindesAroundCount 
     for (var i = 0; i < gLevel.MINES; i++) {
         placeMine(gBoard);
     }
@@ -46,10 +46,9 @@ function buildBoard(num) {
 function placeMine(board,emptyCells) {
     var emptyCells = getEmptyCells(gBoard);
     var randIdx = getRandomIntInclusive(0, emptyCells.length - 1);
-    console.log(randIdx)
     var cell = emptyCells[randIdx];
     board[cell.i][cell.j].isMine = true;
-    board[cell.i][cell.j].isShown = true;
+    board[cell.i][cell.j].isShown = false;
 
     return cell;
 }
@@ -105,18 +104,24 @@ function getCellMinesNegs(cell, board) {
 
 
 function cellClicked(elCell, i, j) {
-    if (gBoard[i][j].isMine || gBoard[i][j].isMarked) return;
+    if (gBoard[i][j].isMarked || gBoard[i][j].isShown) return;
+    gBoard[i][j].isShown = !gBoard[i][j].isShown;
     var negsCount = getCellMinesNegs(gBoard[i][j], gBoard)
     elCell.innerText = negsCount;
     elCell.classList.toggle('unrevealed')
 
+    // cases:
+    if (gBoard[i][j].isMine) {
+        renderCell(gBoard[i][j],MINE)
+    }
 
 }
 
 function cellMarked(elCell, i, j) {
     window.event.preventDefault();
-    elCell.innerText = FLAG;
-    console.log('flagged!')
+    if (gBoard[i][j].isShown) return;
+    elCell.innerText = (gBoard[i][j].isMarked) ? '' : FLAG;
+    gBoard[i][j].isMarked = !gBoard[i][j].isMarked
 }
 
 function checkGameOver(i, j) {

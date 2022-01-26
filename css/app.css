@@ -1,9 +1,14 @@
 body{
     text-align: center;
+    vertical-align: middle;
     font-family: 'Lucida Sans';
-    color: cadetblue;
+    color: rgb(226, 156, 25);
     background-color: rgb(19, 68, 77,0.9);
+    /* background-image: url('../assets/img/grass.jpg'); */
+    background-repeat: no-repeat;
+    background-size: cover;
 }
+
 
 table{
     margin:auto; 
@@ -12,9 +17,8 @@ table{
     table-layout: fixed ;
     width: 100% ;  
     height:500px;
-    text-align: center;
-
 }
+
 
 td{
     border: 2px cadetblue solid;
@@ -24,12 +28,21 @@ td{
     overflow: hidden;
     text-align: center;
     vertical-align: middle;
+    margin:auto;
 }
 
 
-.no-content:after{
+.unrevealed:after{
     content: 'empty';
     visibility: hidden;
+}
+
+.record{
+    display:none;
+}
+
+.timer{
+    font-family: 'consolas';
 }
 
 .mine{
@@ -47,7 +60,7 @@ td{
 
 .btn{
     padding:10px;
-    text-align: center;
+    /* text-align: center; */
     margin:10px;
     border-radius: 10px;
     background-color: rgba(166, 251, 166, 0.753);
@@ -56,7 +69,7 @@ td{
 
 .buttons{
     border: 7px groove  cadetblue;
-    text-align: center;
+    /* text-align: center; */
     margin:auto;
     width:30%;
     margin-bottom:30px
@@ -75,5 +88,6 @@ td{
 } */
 
 .unrevealed{
-    background-color: rgba(128, 128, 128, 0.527);
+    background: linear-gradient(34deg, #3d5e8c 0%, rgba(255, 255, 255, 0.24) 100%);
 }
+

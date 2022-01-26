@@ -21,10 +21,9 @@ function renderBoard(board, selector) {
     strHTML += '\t\t<tr>\n';
     for (var j = 0; j < board[0].length; j++) {
       var cell = board[i][j];
-      //TODO:delete
       var cellClass = `cell cell-${i}-${j} `;
       cellClass += (!cell.isShown) ? 'unrevealed ' : '';
-      cellClass += (cell.isMine && cell.isShown) ? 'mine ' : 'no-content ';
+      cellClass += (cell.isMine) ? 'mine ' : 'no-content ';
       strHTML += `\t\t\t<td class="${cellClass}" onclick="cellClicked(this,${i},${j})" oncontextmenu="cellMarked(this,${i},${j})">
       ${(cell.isMine && cell.isShown) ? MINE : ""}</td>\n`;
     }
