@@ -3,18 +3,17 @@
 var gBoard = [];
 const MINE = '💣';
 const FLAG = '🚩'
+const LIFE = '🔋'
+const NOLIFE = '❌'
 var gLevel;
 var gStartTime = 0;
 var gElTimer = document.querySelector('.timer');
 var gSec = 0;
-var gMin = 0;
-var gHr = 0;
-var gIsGameOn = false;
-var gClockTimeout;
+var gClockTimeout = 0;
+var gGame;
 
 function initGame() {
     buildBoard(4);
-    //setMinesNegsCount(gBoard)
 }
 
 function createLevel(num) {
@@ -25,13 +24,12 @@ function createLevel(num) {
     return level;
 }
 
-
 function buildBoard(num) {
-    // stopTime();
-    resetTime();
-
+    gGame = createGame();
+    renderLife()
+    resetTime()
+    gameOver();
     gLevel = createLevel(num);
-
     gBoard = createMat(num);
 
     for (var i = 0; i < gBoard.length; i++) {
@@ -43,14 +41,7 @@ function buildBoard(num) {
         }
     }
 
-    // Place the mines
-    // countNegs(cell with isMine:true) and update cell object with mindesAroundCount 
-    // for (var i = 0; i < gLevel.MINES; i++) {
-    //     placeMine(gBoard);
-    // }
-
     renderBoard(gBoard, '.board-container')
-
 }
 
 function placeMine(board, i, j) {
@@ -61,7 +52,7 @@ function placeMine(board, i, j) {
     var cell = emptyCells[randIdx];
     board[cell.i][cell.j].isMine = true;
     board[cell.i][cell.j].isShown = false;
-    
+
     return cell;
 }
 
@@ -114,18 +105,23 @@ function getCellMinesNegs(cell, board) {
     return negsCount;
 }
 
+
 function cellClicked(elCell, i, j) {
+    if (gGame.numOfLife <= 0) {
+        gameOver()
+        return
+    }
+    //
+    if (!gGame.isOn && gSec > 0) return;
     // place mines with first click and start game/time
-    if (gStartTime === 0){
+    if (gStartTime === 0) {
         for (var x = 0; x < gLevel.MINES; x++) {
             placeMine(gBoard, i, j);
         }
     }
     startGame()
-    // expandShown(gBoard,elCell,i,j)
-    // expandCells(gBoard,elCell,i,j)
-
     if (gBoard[i][j].isMarked || gBoard[i][j].isShown) return;
+
 
 
     gBoard[i][j].isShown = true;
@@ -133,19 +129,48 @@ function cellClicked(elCell, i, j) {
     elCell.innerText = negsCount;
     elCell.classList.remove('unrevealed')
 
+    // expandShown(gBoard,elCell,i,j);
     checkGameOver()
 
 
     // cases:
     if (gBoard[i][j].isMine) {
-        gameOver();
         renderCell(gBoard[i][j], MINE)
+        if (gGame.numOfLife > 0 && !checkGameOver()) {
+            gGame.numOfLife--
+            if (gGame.numOfLife === 0) gameOver();
+            renderLife();
+            return;
+        }
+        gameOver();
     }
 
 }
 
+function renderLife() {
+    var elLife = document.querySelector('span.life')
+    elLife.innerText = ''
+    for (var i = 0; i < gGame.numOfLife; i++) {
+        elLife.innerText += LIFE;
+    }
+    if (gGame.numOfLife === 0) {
+        elLife.innerText += NOLIFE
+    }
+}
+
 function cellMarked(elCell, i, j) {
-    if(!gIsGameOn) return;
+    if (gGame.numOfLife <= 0) {
+        gameOver()
+        return
+    }
+
+    elCell.classList.toggle('flag')
+    elCell.classList.toggle('unrevealed')
+
+
+    /***************/
+    /**********/
+
     if (gStartTime === 0)
         for (var x = 0; x < gLevel.MINES; x++) {
             placeMine(gBoard, i, j);
@@ -159,22 +184,25 @@ function cellMarked(elCell, i, j) {
 }
 
 function checkGameOver() {
-    var flagCount = 0;
-    var regCount = 0;
+    gGame.shownCount = 0;
+    gGame.markedCount = 0;
     for (var i = 0; i < gBoard.length; i++) {
         for (var j = 0; j < gBoard[0].length; j++) {
             var cell = gBoard[i][j]
-            if (cell.isShown && !cell.Mine) regCount++
-            if (cell.isMarked) flagCount++
+            if (cell.isShown && !cell.Mine) gGame.shownCount++
+            if (cell.isMarked) gGame.markedCount++
         }
     }
-    if ((flagCount + regCount) === (gLevel.SIZE ** 2) && flagCount === gLevel.MINES) {
+    if (((gGame.markedCount + gGame.shownCount) === (gLevel.SIZE ** 2) && gGame.markedCount === gLevel.MINES)
+        || (gGame.shownCount === (gLevel.SIZE ** 2))) {
         gameOver();
+        return true;
     }
-    
+    return false;
+
 }
 
-function gameOver(){
+function gameOver() {
     stopTime();
 }
 
@@ -183,20 +211,31 @@ function expandShown(board, elCell, i, j) {
     for (var cellI = i - 1; cellI <= i + 1; cellI++) {
         for (var cellJ = j - 1; cellJ <= j + 1; cellJ++) {
             var currCell = board[cellI][cellJ]
+            if (cellI < 0 || cellI > board.length - 1 || cellJ < 0 || cellJ > board[0].length - 1) continue
+            if (currCell.isShown) continue
+            if (currCell.isMine) continue
             negsBoard.push(currCell);
-            getCellMinesNegs(currCell, gBoard)
+            //getCellMinesNegs(currCell, gBoard)
             var elCurrCell = document.querySelector(`.cell-${cellI}-${cellJ}`)
-            // renderCell(elCurrCell,currCell.minesAroundCount)
+            renderCell(elCurrCell, currCell.minesAroundCount)
 
         }
     }
-    //     // console.log(setMinesNegsCount(negsBoard));
-    // if(board[i][j].minesAroundCount === 0){
+}
 
-    // }
+function createGame() {
+    var game = {
+        isOn: false,
+        shownCount: 0,
+        markedCount: 0,
+        secsPassed: 0,
+        numOfLife: 3
+    }
+    return game;
 }
 
 function startGame() {
+    // gGame = createGame();
     if (gStartTime === 0) {
         gStartTime = Date.now();
         startTime()
@@ -204,51 +243,31 @@ function startGame() {
 }
 
 function startTime() {
-    if (!gIsGameOn) {
-        gIsGameOn = true;
-        displayTime();
+    if (!gGame.isOn) {
+        gGame.isOn = true;
     }
+    displayTime();
+}
+
+function resetTimeout() {
+    clearTimeout(gClockTimeout);
+    gClockTimeout = 0;
 }
 
 function stopTime() {
-    gIsGameOn = false;
+    gGame.isOn = false;
     gStartTime = 0;
-    stopDisplayTime();
-}
-
-function stopDisplayTime() {
-    clearTimeout(gClockTimeout);
+    resetTimeout();
 }
 
 function resetTime() {
-    // gElTimer.innerText = '00:00:00';
     gElTimer.innerText = '000';
     gSec = 0;
-    // gMin = 0 ;
-    // gHr = 0 ;
+    resetTimeout()
 }
 
 function displayTime() {
     gSec += 1;
-    // if (gSec === 60){
-    //     gMin += 1;
-    //     gSec = 0 ;
-    // } 
-    // if (gMin === 60){
-    //     gHr += 1;
-    //     gMin = 0 ;
-    //     gSec = 0 ;
-    // }
-    // var zerohr = '0';
-    // var zeromin = '0';
-    // var zerosec = '0';
-
-    // if(gHr > 9 ){
-    //     zerohr = '';
-    // }
-    // if(gMin > 9 ){
-    //     zeromin = '';
-    // }
     var zeroSec = '00';
     if (gSec > 9 && gSec < 100) {
         zeroSec = '0';
@@ -259,7 +278,7 @@ function displayTime() {
     if (gSec > 99) {
         zeroSec = '';
     }
-    // gElTimer.innerText = zerohr + gHr + ":" + zeromin + gMin + ":" + zerosec + gSec;
     gElTimer.innerText = zeroSec + gSec;
+    // gGame.secsPassed = gSec;
     gClockTimeout = setTimeout("displayTime()", 1000);
 }

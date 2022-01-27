@@ -12,6 +12,9 @@ body{
     background-size: cover;
 }
 
+h1, h5{
+    margin-bottom:3px;
+}
 
 table{
     margin:auto; 
@@ -41,6 +44,7 @@ td{
 .record{
     max-height: min-content;
     display:none;
+    padding:0px;
 }
 
 
@@ -84,11 +88,17 @@ td{
 
 .unrevealed{
     background: linear-gradient(34deg, #3d5e8c 0%, rgba(255, 255, 255, 0.24) 100%);
+    content:'empty';
 }
 
 .unrevealed:after{
     content: 'empty';
     visibility: hidden;
+}
+
+.flag{
+    background: linear-gradient(34deg, #3d5e8c 0%, rgba(255, 255, 255, 0.24) 100%);
+    content:'empty'
 }
 
 .cell {
@@ -106,4 +116,10 @@ footer{
 td > img{
     width:40px;
     height:40px;
+}
+.life{
+    letter-spacing: auto;
+    font-family: 'Gloria Hallelujah', cursive;
+
+    
 }
