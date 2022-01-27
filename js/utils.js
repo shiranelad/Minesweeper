@@ -41,6 +41,9 @@ function renderBoard(board, selector) {
 function renderCell(location, value) {
   // Select the elCell and set the value
   var elCell = document.querySelector(`.cell-${location.i}-${location.j}`);
+  if(value === MINE){
+    elCell.classList.add('mine')
+  }
   elCell.innerHTML = value;
 }
 
