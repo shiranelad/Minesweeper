@@ -151,6 +151,18 @@ function cellClicked(elCell, i, j) {
             gGame.numOfLife--
             renderLife();
             if (gGame.numOfLife === 0) {
+                //blow all mines when game is over
+                for (var i = 0; i < gBoard.length; i++) {
+                    for (var j = 0; j < gBoard[0].length; j++) {
+                        var cell = gBoard[i][j];
+                        if(cell.isMine) {
+                            cell.isShown = true;
+                            renderCell(cell,MINE);
+                            var elCurCell = document.querySelector(`.cell-${i}-${j}`);
+                            elCurCell.classList.remove('unrevealed')
+                        }
+                    }
+                }
                 gameOver();
                 // lost
                 var emoji = LOST
