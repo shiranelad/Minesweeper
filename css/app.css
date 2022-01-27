@@ -5,15 +5,18 @@ body{
     /* font-family: 'Press Start 2P', cursive; */
     color: rgb(7, 109, 48);
     font-size: 20px;
-    letter-spacing: 15px;
     /* background-color: rgb(19, 68, 77,0.9); */
     background-image: url('../assets/img/bg.jpg');
     background-repeat: no-repeat;
     background-size: cover;
 }
 
-h1, h5{
+h1, h5, h4{
     margin-bottom:3px;
+}
+
+h4{
+    margin-top: 0;
 }
 
 table{
@@ -29,7 +32,8 @@ table{
 
 
 td{
-    border: 3px cadetblue solid;
+    /* border: 3px cadetblue solid; */
+    border: 3px #396808 solid;
     font-size:24px;
     font-weight: bold;
     /* width:25%; */
@@ -65,6 +69,7 @@ td{
     background-color: #84a714;
     color:#363501;
     font-size: 20px;
+    cursor:pointer;
 }
 
 .control{
@@ -73,12 +78,13 @@ td{
     margin-bottom:30px
 }
 
-.message, .timer , h5{
-    font-size: 25px;
+.timer , .life{
+    font-size: 20px;
+    display: inline-block;
     font-weight: bold;
     color:green;
     min-height: 40px;
-    font-family: consolas;
+    font-family: 'Gloria Hallelujah', cursive;
 }
 
 /* .next-num{
@@ -86,20 +92,16 @@ td{
     font-weight: bold;
 } */
 
-.unrevealed{
+.unrevealed, .flag{
     background: linear-gradient(34deg, #3d5e8c 0%, rgba(255, 255, 255, 0.24) 100%);
     content:'empty';
 }
 
 .unrevealed:after{
-    content: 'empty';
+    content:'empty';
     visibility: hidden;
 }
 
-.flag{
-    background: linear-gradient(34deg, #3d5e8c 0%, rgba(255, 255, 255, 0.24) 100%);
-    content:'empty'
-}
 
 .cell {
     background-color:rgba(245, 245, 245, 0.8);
@@ -113,13 +115,27 @@ footer{
     margin-top: 5px;
 }
 
-td > img{
-    width:40px;
-    height:40px;
-}
+
 .life{
     letter-spacing: auto;
     font-family: 'Gloria Hallelujah', cursive;
-
+    padding:5px;
     
+}
+
+.status{
+    border: 0;
+    text-align: center;
+    height:0;
+    width:40%;
+    min-width: 400px;
+}
+
+.empojiopt, .emoji{
+    background-color:transparent;
+    border:transparent;
+    border:0px; 
+    font-size:60px;
+    cursor:pointer;
+    margin:0px;
 }

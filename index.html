@@ -18,8 +18,17 @@
     <h1>Minesweeper</h1>
     <h4 class="record">The current record is:</h4>
     <div class="control">
-      <h5><span class="timer">000</span></h5>
-        <h5 class="life">Lives:<span class="life">3</span></h5>
+      <table class="status">
+          <tr>
+            <td><div class="timer"><span class="timer">⏱️ 000</span></div></td>
+            <td><div class="life" class="life">Lives:<span class="life">3</span></div></td>
+          </tr>
+          <tr>
+              <td colspan=2 class="emojiopt" style="border:0"><button class="emoji" onclick="buildBoard(4);">🙂</button>
+                </td>
+            </tr>
+    </table>
+      </div>
       <button class="btn" onclick="buildBoard(4)">Easy 4x4</button>
       <button class="btn" onclick="buildBoard(8)">Medium 8x8</button>
       <button class="btn" onclick="buildBoard(12)">Hard 12x12</button>

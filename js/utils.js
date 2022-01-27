@@ -43,6 +43,8 @@ function renderCell(location, value) {
   var elCell = document.querySelector(`.cell-${location.i}-${location.j}`);
   if(value === MINE){
     elCell.classList.add('mine')
+  } else if (value >= 0){
+    elCell.classList.remove('unrevealed');
   }
   elCell.innerHTML = value;
 }

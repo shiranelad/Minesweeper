@@ -4,10 +4,15 @@ var gBoard = [];
 const MINE = '💣';
 const FLAG = '🚩'
 const LIFE = '🔋'
-const NOLIFE = '❌'
+const TIME = '⏱';
+const NOLIFE = '❌';
+const LOST = '😖';
+const REGULAR = '🙂'
+const WON = '🥳';
+
 var gLevel;
 var gStartTime = 0;
-var gElTimer = document.querySelector('.timer');
+var gElTimer = document.querySelector('span.timer');
 var gSec = 0;
 var gClockTimeout = 0;
 var gGame;
@@ -24,11 +29,16 @@ function createLevel(num) {
     return level;
 }
 
-function buildBoard(num) {
+function resetGame() {
     gGame = createGame();
     renderLife()
     resetTime()
     gameOver();
+
+}
+
+function buildBoard(num) {
+    resetGame();
     gLevel = createLevel(num);
     gBoard = createMat(num);
 
@@ -41,6 +51,7 @@ function buildBoard(num) {
         }
     }
 
+    renderEmoji(REGULAR)
     renderBoard(gBoard, '.board-container')
 }
 
@@ -123,13 +134,12 @@ function cellClicked(elCell, i, j) {
     if (gBoard[i][j].isMarked || gBoard[i][j].isShown) return;
 
 
-
     gBoard[i][j].isShown = true;
     var negsCount = getCellMinesNegs(gBoard[i][j], gBoard)
     elCell.innerText = negsCount;
     elCell.classList.remove('unrevealed')
 
-    // expandShown(gBoard,elCell,i,j);
+    expandShown(gBoard,elCell,i,j);
     checkGameOver()
 
 
@@ -138,8 +148,13 @@ function cellClicked(elCell, i, j) {
         renderCell(gBoard[i][j], MINE)
         if (gGame.numOfLife > 0 && !checkGameOver()) {
             gGame.numOfLife--
-            if (gGame.numOfLife === 0) gameOver();
             renderLife();
+            if (gGame.numOfLife === 0) {
+                gameOver();
+                // lost
+                var emoji = LOST
+                renderEmoji(emoji)
+            }
             return;
         }
         gameOver();
@@ -186,20 +201,31 @@ function cellMarked(elCell, i, j) {
 function checkGameOver() {
     gGame.shownCount = 0;
     gGame.markedCount = 0;
+    var wrongMark = 0;
     for (var i = 0; i < gBoard.length; i++) {
         for (var j = 0; j < gBoard[0].length; j++) {
             var cell = gBoard[i][j]
             if (cell.isShown && !cell.Mine) gGame.shownCount++
+            if (!cell.isMine && cell.isMarked) wrongMark++;
             if (cell.isMarked) gGame.markedCount++
         }
     }
-    if (((gGame.markedCount + gGame.shownCount) === (gLevel.SIZE ** 2) && gGame.markedCount === gLevel.MINES)
-        || (gGame.shownCount === (gLevel.SIZE ** 2))) {
+    if ((gGame.markedCount + gGame.shownCount) === (gLevel.SIZE ** 2) && wrongMark === 0) { //&& gGame.markedCount === gLevel.MINES)
+        // || (gGame.shownCount === (gLevel.SIZE ** 2)) {
+        // won
         gameOver();
+        checkBestTime()
+        var emoji = WON
+        renderEmoji(emoji)
         return true;
     }
     return false;
 
+}
+
+function renderEmoji(value) {
+    var elEmoBtn = document.querySelector('.emoji');
+    elEmoBtn.innerText = value;
 }
 
 function gameOver() {
@@ -207,21 +233,79 @@ function gameOver() {
 }
 
 function expandShown(board, elCell, i, j) {
-    var negsBoard = []
-    for (var cellI = i - 1; cellI <= i + 1; cellI++) {
-        for (var cellJ = j - 1; cellJ <= j + 1; cellJ++) {
-            var currCell = board[cellI][cellJ]
-            if (cellI < 0 || cellI > board.length - 1 || cellJ < 0 || cellJ > board[0].length - 1) continue
-            if (currCell.isShown) continue
-            if (currCell.isMine) continue
-            negsBoard.push(currCell);
-            //getCellMinesNegs(currCell, gBoard)
-            var elCurrCell = document.querySelector(`.cell-${cellI}-${cellJ}`)
-            renderCell(elCurrCell, currCell.minesAroundCount)
+    // if(!elCell.classList.contains('unrevealed')) return;
+    // if current cell is bigger than 0, expose only this cell
+    if (board[i][j].minesAroundCount !== 0) {
+        board[i][j].isShown;
+        renderCell(board[i][j],board[i][j].minesAroundCount)
+        elCell.classList.remove('unrevealed')
+        return;
+    } else {
+        for (var cellI = i - 1; cellI <= i + 1; cellI++) {
+            for (var cellJ = j - 1; cellJ <= j + 1; cellJ++) {
+                if (cellI < 0 || cellI > board.length - 1 || cellJ < 0 || cellJ > board[0].length - 1) continue
+                var currCell = board[cellI][cellJ];
+                if(currCell.isMarked)continue
+                console.log(currCell);
+                getCellMinesNegs(currCell,board);
+                currCell.isShown = true;
+                renderCell(currCell,currCell.minesAroundCount)
+                var elCurCell = document.querySelector(`.cell-${i}-${j}`);
+                // expandShown(board,elCurCell,cellI,cellJ);
+            }
 
         }
     }
 }
+
+
+
+
+
+//     var negsBoard = []
+//     for (var cellI = i - 1; cellI <= i + 1; cellI++) {
+//         for (var cellJ = j - 1; cellJ <= j + 1; cellJ++) {
+//             var currCell = board[cellI][cellJ]
+//             if (cellI < 0 || cellI > board.length - 1 || cellJ < 0 || cellJ > board[0].length - 1) continue
+//             if (currCell.isShown) continue
+//             if (currCell.isMine) continue
+//             negsBoard.push(currCell);
+//             //getCellMinesNegs(currCell, gBoard)
+//             var elCurrCell = document.querySelector(`.cell-${cellI}-${cellJ}`)
+//             renderCell(elCurrCell, currCell.minesAroundCount)
+
+//         }
+//     }
+// }
+
+/*** best time bonus ***/
+function checkBestTime() {
+    var bestTime = localStorage.getItem(gLevel.SIZE);
+    //alert(totalTime);
+    if (bestTime === 0 || bestTime === null) {
+        bestTime = gGame.secsPassed;
+    } else if (gGame.secsPassed < bestTime) {
+        bestTime = gGame.secsPassed;
+        localStorage.removeItem(gLevel.SIZE);
+    }
+    localStorage.setItem(gLevel.SIZE, bestTime);
+    displayRecord();
+}
+
+function displayRecord() {
+    var bestTime = localStorage.getItem(gLevel.SIZE);
+    var record = document.querySelector('.record');
+    if (bestTime === null) {
+        record.style.display = 'none';
+    }
+    else {
+        record.style.display = 'block';
+        record.innerText = 'The best time record for this level is: ' + bestTime + " seconds";
+    }
+}
+/******/
+
+
 
 function createGame() {
     var game = {
@@ -258,10 +342,11 @@ function stopTime() {
     gGame.isOn = false;
     gStartTime = 0;
     resetTimeout();
+    gGame.secsPassed = gSec;
 }
 
 function resetTime() {
-    gElTimer.innerText = '000';
+    gElTimer.innerText = TIME + ' 000';
     gSec = 0;
     resetTimeout()
 }
@@ -278,7 +363,7 @@ function displayTime() {
     if (gSec > 99) {
         zeroSec = '';
     }
-    gElTimer.innerText = zeroSec + gSec;
+    gElTimer.innerText = TIME + zeroSec + gSec;
     // gGame.secsPassed = gSec;
     gClockTimeout = setTimeout("displayTime()", 1000);
 }
