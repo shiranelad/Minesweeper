@@ -180,6 +180,8 @@ function cellMarked(elCell, i, j) {
         return
     }
 
+    if(!elCell.classList.contains('unrevealed') && !elCell.classList.contains('flag')) return;
+
     elCell.classList.toggle('flag')
     elCell.classList.toggle('unrevealed')
 
