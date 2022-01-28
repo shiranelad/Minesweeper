@@ -1,14 +1,17 @@
 'use strict'
 
 function createMat(num) {
-  
+
   var mat = []
   const ROWS = num;
   const COLS = num;
   for (var i = 0; i < ROWS; i++) {
     var row = []
     for (var j = 0; j < COLS; j++) {
-      row.push('')
+      var cellObj = createCell();
+      cellObj.i = i;
+      cellObj.j = j;
+      row.push(cellObj)
     }
     mat.push(row)
   }
@@ -25,13 +28,12 @@ function renderBoard(board, selector) {
       cellClass += (!cell.isShown) ? 'unrevealed ' : '';
       cellClass += (cell.isMine) ? 'mine ' : 'no-content ';
       strHTML += `\t\t\t<td class="${cellClass}" onclick="cellClicked(this,${i},${j})" oncontextmenu="cellMarked(this,${i},${j})">
-      ${(cell.isMine && cell.isShown) ? MINE : ""}</td>\n`;
+          ${(cell.isMine && cell.isShown) ? MINE : ""}</td>\n`;
     }
 
     strHTML += '\t\t</tr>\n'
   }
   strHTML += '</tbody></table>';
-  // console.log('strHTML: ', strHTML);
   var elContainer = document.querySelector(selector);
   elContainer.innerHTML = strHTML;
 }
@@ -39,12 +41,17 @@ function renderBoard(board, selector) {
 
 // location such as: {i: 2, j: 7}
 function renderCell(location, value) {
-  // Select the elCell and set the value
+  // Select the elCell and set the value, and classes accordingly
   var elCell = document.querySelector(`.cell-${location.i}-${location.j}`);
-  if(value === MINE){
+  if (value === MINE) {
     elCell.classList.add('mine')
-  } else if (value >= 0){
+  } 
+  else if (value === FLAG) {
+    elCell.classList.add('flag')
+  }
+  else if (gBoard[location.i][location.j].isShown) {
     elCell.classList.remove('unrevealed');
+    elCell.classList.remove('flag');
   }
   elCell.innerHTML = value;
 }

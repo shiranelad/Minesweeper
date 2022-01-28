@@ -18,7 +18,7 @@ var gClockTimeout = 0;
 var gGame;
 
 function initGame() {
-    buildBoard(4);
+    resetGame(4);
 }
 
 function createLevel(num) {
@@ -29,32 +29,19 @@ function createLevel(num) {
     return level;
 }
 
-function resetGame() {
+function resetGame(num) {
+    resetTime()
+    buildBoard(num);
+    gLevel = createLevel(num);
     gGame = createGame();
     renderLife()
-    resetTime()
-    gameOver();
-
+    renderEmoji(REGULAR)
+    displayRecord()
 }
 
 function buildBoard(num) {
-    resetGame();
-    gLevel = createLevel(num);
     gBoard = createMat(num);
-
-    for (var i = 0; i < gBoard.length; i++) {
-        for (var j = 0; j < gBoard[0].length; j++) {
-            // Add created cell to The game board
-            gBoard[i][j] = createCell();
-            gBoard[i][j].i = i
-            gBoard[i][j].j = j
-        }
-    }
-
-    renderEmoji(REGULAR)
     renderBoard(gBoard, '.board-container')
-    displayRecord()
-
 }
 
 function placeMine(board, i, j) {
@@ -88,7 +75,7 @@ function createCell() {
         i: -1,
         j: -1
     }
-    return cell
+    return cell;
 }
 
 //count the neighbors of each cell
@@ -97,7 +84,7 @@ function setMinesNegsCount(board) {
         for (var j = 0; j < board[0].length; j++) {
             var cell = board[i][j];
             if (cell.isMine) continue;
-            cell.isShown = true;
+            getCellMinesNegs(cell, board);
         }
     }
     return board;
@@ -106,45 +93,40 @@ function setMinesNegsCount(board) {
 function getCellMinesNegs(cell, board) {
     var negsCount = 0;
     for (var i = cell.i - 1; i <= cell.i + 1; i++) {
+        if (i < 0 || i > board.length - 1) continue
         for (var j = cell.j - 1; j <= cell.j + 1; j++) {
-            if (i < 0 || i > board.length - 1 || j < 0 || j > board[0].length - 1) continue
+            if (j < 0 || j > board[0].length - 1) continue
             if (cell.i === i && cell.j === j) continue
             var neg = board[i][j];
             if (neg.isMine) negsCount++
         }
     }
     cell.minesAroundCount = negsCount;
-    return negsCount;
 }
 
-
+//left click
 function cellClicked(elCell, i, j) {
-    if (gGame.numOfLife <= 0) {
-        gameOver()
-        return
-    }
-    //
+    //when there are no more lives
+    if (checkNoLife()) return
+    //check that game is not over by losing
     if (!gGame.isOn && gSec > 0) return;
     // place mines with first click and start game/time
-    if (gStartTime === 0) {
-        for (var x = 0; x < gLevel.MINES; x++) {
-            placeMine(gBoard, i, j);
-        }
-    }
-    startGame()
+    placeMines(i, j);
+
+    startGame();
+    //do not allow click if cell is already shown or flagged
     if (gBoard[i][j].isMarked || gBoard[i][j].isShown) return;
 
-
     gBoard[i][j].isShown = true;
-    var negsCount = getCellMinesNegs(gBoard[i][j], gBoard)
+    var negsCount = gBoard[i][j].minesAroundCount;
     elCell.innerText = negsCount;
     elCell.classList.remove('unrevealed')
 
-    expandShown(gBoard,elCell,i,j);
+    expandShown(gBoard, i, j);
     checkGameOver()
 
 
-    // cases:
+    // when cell is a MINE, check life:
     if (gBoard[i][j].isMine) {
         renderCell(gBoard[i][j], MINE)
         if (gGame.numOfLife > 0 && !checkGameOver()) {
@@ -155,59 +137,76 @@ function cellClicked(elCell, i, j) {
                 for (var i = 0; i < gBoard.length; i++) {
                     for (var j = 0; j < gBoard[0].length; j++) {
                         var cell = gBoard[i][j];
-                        if(cell.isMine) {
+                        if (cell.isMine) {
                             cell.isShown = true;
-                            renderCell(cell,MINE);
+                            renderCell(cell, MINE);
                             var elCurCell = document.querySelector(`.cell-${i}-${j}`);
                             elCurCell.classList.remove('unrevealed')
                         }
                     }
                 }
-                gameOver();
+                stopTime();
                 // lost
                 var emoji = LOST
                 renderEmoji(emoji)
             }
             return;
         }
-        gameOver();
+        stopTime();
     }
 
 }
 
-function renderLife() {
-    var elLife = document.querySelector('span.life')
-    elLife.innerText = ''
-    for (var i = 0; i < gGame.numOfLife; i++) {
-        elLife.innerText += LIFE;
-    }
-    if (gGame.numOfLife === 0) {
-        elLife.innerText += NOLIFE
-    }
-}
-
+//right click
 function cellMarked(elCell, i, j) {
-    if (gGame.numOfLife <= 0) {
-        gameOver()
-        return
-    }
+    //when there are no more lives
+    if (checkNoLife()) return
 
-    if(!elCell.classList.contains('unrevealed') && !elCell.classList.contains('flag')) return;
+    //if not a flagged field or not a hidden cell, do not allow click
+    if (!elCell.classList.contains('unrevealed') && !elCell.classList.contains('flag')) return;
+    //if open cell, do not allow click 
+    if (gBoard[i][j].isShown) return;
 
+    //first click on the cell put class flag, second click remove
     elCell.classList.toggle('flag')
     elCell.classList.toggle('unrevealed')
 
+    //start game on first click and put mines afterward, not in the clicked cell
+    placeMines(i, j);
 
-    if (gStartTime === 0)
+    startGame()
+    //prevent from opening regular left click menu
+    window.event.preventDefault();
+
+    if (!gBoard[i][j].isMarked) {
+        elCell.innerText = FLAG;
+        gBoard[i][j].isMarked = true;
+        gGame.isMarked++;
+    }
+    else {
+        elCell.innerText = '';
+        gBoard[i][j].isMarked = false;
+        gGame.isMarked--;
+    }
+
+    checkGameOver()
+}
+
+function checkNoLife() {
+    if (gGame.numOfLife <= 0) {
+        stopTime()
+        return true
+    }
+    return false;
+}
+
+function placeMines(i, j) {
+    if (gStartTime === 0) {
         for (var x = 0; x < gLevel.MINES; x++) {
             placeMine(gBoard, i, j);
         }
-    startGame()
-    window.event.preventDefault();
-    if (gBoard[i][j].isShown) return;
-    elCell.innerText = (gBoard[i][j].isMarked) ? '' : FLAG;
-    gBoard[i][j].isMarked = !gBoard[i][j].isMarked
-    checkGameOver()
+    }
+    setMinesNegsCount(gBoard);
 }
 
 function checkGameOver() {
@@ -222,16 +221,45 @@ function checkGameOver() {
             if (cell.isMarked) gGame.markedCount++
         }
     }
-    if ((gGame.markedCount + gGame.shownCount) === (gLevel.SIZE ** 2) && wrongMark === 0) { 
+    if ((gGame.markedCount + gGame.shownCount) === (gLevel.SIZE ** 2) && wrongMark === 0) {
         // won
-        gameOver();
+        stopTime();
         checkBestTime()
         var emoji = WON
         renderEmoji(emoji)
         return true;
     }
     return false;
+}
 
+function expandShown(board, i, j) {
+    if (board[i][j].minesAroundCount !== 0) return
+    if (board[i][j].isMine) return;
+    for (var cellI = i - 1; cellI <= i + 1; cellI++) {
+        if (cellI < 0 || cellI > board.length - 1) continue
+        for (var cellJ = j - 1; cellJ <= j + 1; cellJ++) {
+            if (cellJ < 0 || cellJ > board[0].length - 1) continue
+            if (cellI === i && cellJ === j) continue
+            var currCell = board[cellI][cellJ];
+            if (currCell.isMine) return;
+            if (currCell.isMarked || currCell.isShown || currCell.isMine) continue
+            currCell.isShown = true;
+            renderCell(currCell, currCell.minesAroundCount)
+            expandShown(board, cellI, cellJ);
+        }
+    }
+}
+
+
+function renderLife() {
+    var elLife = document.querySelector('span.life')
+    elLife.innerText = ''
+    for (var i = 0; i < gGame.numOfLife; i++) {
+        elLife.innerText += LIFE;
+    }
+    if (gGame.numOfLife === 0) {
+        elLife.innerText += NOLIFE
+    }
 }
 
 function renderEmoji(value) {
@@ -239,32 +267,9 @@ function renderEmoji(value) {
     elEmoBtn.innerText = value;
 }
 
-function gameOver() {
+function resetLevel(level = gLevel.SIZE) {
     stopTime();
-}
-
-function expandShown(board, elCell, i, j) {
-    if (board[i][j].minesAroundCount !== 0) {
-        board[i][j].isShown;
-        renderCell(board[i][j],board[i][j].minesAroundCount)
-        elCell.classList.remove('unrevealed')
-        // return;
-    } else {
-        for (var cellI = i - 1; cellI <= i + 1; cellI++) {
-            for (var cellJ = j - 1; cellJ <= j + 1; cellJ++) {
-                if (cellI < 0 || cellI > board.length - 1 || cellJ < 0 || cellJ > board[0].length - 1) continue
-                var currCell = board[cellI][cellJ];
-                if(currCell.isMarked)continue
-                // console.log(currCell);
-                getCellMinesNegs(currCell,board);
-                currCell.isShown = true;
-                renderCell(currCell,currCell.minesAroundCount)
-                // var elCurCell = document.querySelector(`.cell-${cellI}-${cellJ}`);
-                // expandShown(board,elCurCell,cellI,cellJ);
-            }
-
-        }
-    }
+    resetGame(level);
 }
 
 /*** best time bonus ***/
@@ -294,7 +299,7 @@ function displayRecord() {
 
 function createGame() {
     var game = {
-        isOn: false,
+        isOn: true,
         shownCount: 0,
         markedCount: 0,
         secsPassed: 0,
@@ -303,25 +308,7 @@ function createGame() {
     return game;
 }
 
-function startGame() {
-    if (gStartTime === 0) {
-        gStartTime = Date.now();
-        startTime()
-    }
-}
-
-function startTime() {
-    if (!gGame.isOn) {
-        gGame.isOn = true;
-    }
-    displayTime();
-}
-
-function resetTimeout() {
-    clearTimeout(gClockTimeout);
-    gClockTimeout = 0;
-}
-
+//when game ends
 function stopTime() {
     gGame.isOn = false;
     gStartTime = 0;
@@ -329,10 +316,25 @@ function stopTime() {
     gGame.secsPassed = gSec;
 }
 
+//clear the timeout when game ends
+function resetTimeout() {
+    clearTimeout(gClockTimeout);
+    gClockTimeout = 0;
+}
+
+//only at reset game
 function resetTime() {
     gElTimer.innerText = TIME + ' 000';
     gSec = 0;
     resetTimeout()
+}
+
+function startGame() {
+    if (gStartTime === 0) {
+        gStartTime = Date.now();
+        gGame.isOn = true;
+        displayTime(); //start clock
+    }
 }
 
 function displayTime() {
@@ -350,3 +352,4 @@ function displayTime() {
     gElTimer.innerText = TIME + zeroSec + gSec;
     gClockTimeout = setTimeout("displayTime()", 1000);
 }
+
