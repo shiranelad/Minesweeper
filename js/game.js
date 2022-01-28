@@ -4,8 +4,9 @@ var gBoard = [];
 const MINE = '💣';
 const FLAG = '🚩'
 const LIFE = '🔋'
-const TIME = '⏱';
+const TIME = 'Time';
 const NOLIFE = '❌';
+const SAFE = '🔓';
 const LOST = '😖';
 const REGULAR = '🙂'
 const WON = '🥳';
@@ -16,6 +17,8 @@ var gElTimer = document.querySelector('span.timer');
 var gSec = 0;
 var gClockTimeout = 0;
 var gGame;
+var gExpandedMove = []
+var gMoves = [];
 
 function initGame() {
     resetGame(4);
@@ -32,9 +35,11 @@ function createLevel(num) {
 function resetGame(num) {
     resetTime()
     buildBoard(num);
+    gMoves = [];
     gLevel = createLevel(num);
     gGame = createGame();
     renderLife()
+    renderSafe()
     renderEmoji(REGULAR)
     displayRecord()
 }
@@ -73,7 +78,8 @@ function createCell() {
         isMine: false,
         isMarked: false,
         i: -1,
-        j: -1
+        j: -1,
+        prevMove: []
     }
     return cell;
 }
@@ -104,6 +110,8 @@ function getCellMinesNegs(cell, board) {
     cell.minesAroundCount = negsCount;
 }
 
+
+
 //left click
 function cellClicked(elCell, i, j) {
     //when there are no more lives
@@ -111,7 +119,12 @@ function cellClicked(elCell, i, j) {
     //check that game is not over by losing
     if (!gGame.isOn && gSec > 0) return;
     // place mines with first click and start game/time
-    placeMines(i, j);
+    if (gStartTime === 0) {
+        if (gGame.is7Boom) sevenBoomMines(gBoard);
+        else placeMines(i, j);
+    }
+
+
 
     startGame();
     //do not allow click if cell is already shown or flagged
@@ -122,6 +135,7 @@ function cellClicked(elCell, i, j) {
     elCell.innerText = negsCount;
     elCell.classList.remove('unrevealed')
 
+    gExpandedMove = [];
     expandShown(gBoard, i, j);
     checkGameOver()
 
@@ -138,7 +152,13 @@ function cellClicked(elCell, i, j) {
                     for (var j = 0; j < gBoard[0].length; j++) {
                         var cell = gBoard[i][j];
                         if (cell.isMine) {
+                            //UNDO FNC
+                            // var prevCell = createCellCopy(i, j)
                             cell.isShown = true;
+                            // var copiedCell = createCellCopy(i, j);
+                            // copiedCell.prevMove = prevCell;
+                            // gMoves.push([copiedCell]);
+                            //
                             renderCell(cell, MINE);
                             var elCurCell = document.querySelector(`.cell-${i}-${j}`);
                             elCurCell.classList.remove('unrevealed')
@@ -154,7 +174,6 @@ function cellClicked(elCell, i, j) {
         }
         stopTime();
     }
-
 }
 
 //right click
@@ -167,12 +186,21 @@ function cellMarked(elCell, i, j) {
     //if open cell, do not allow click 
     if (gBoard[i][j].isShown) return;
 
+    //UNDO FNC
+    // var prevCell = createCellCopy(i, j)
+
+
     //first click on the cell put class flag, second click remove
     elCell.classList.toggle('flag')
     elCell.classList.toggle('unrevealed')
 
     //start game on first click and put mines afterward, not in the clicked cell
-    placeMines(i, j);
+    // place mines with first click and start game/time
+    if (gStartTime === 0) {
+        if (gGame.is7Boom) sevenBoomMines(gBoard);
+        else placeMines(i, j);
+    }
+
 
     startGame()
     //prevent from opening regular left click menu
@@ -181,15 +209,19 @@ function cellMarked(elCell, i, j) {
     if (!gBoard[i][j].isMarked) {
         elCell.innerText = FLAG;
         gBoard[i][j].isMarked = true;
-        gGame.isMarked++;
     }
     else {
         elCell.innerText = '';
         gBoard[i][j].isMarked = false;
-        gGame.isMarked--;
     }
 
     checkGameOver()
+
+    // var copiedCell = createCellCopy(i, j);
+    // copiedCell.prevMove = prevCell;
+    // gMoves.push([copiedCell]);
+    // 
+
 }
 
 function checkNoLife() {
@@ -232,9 +264,11 @@ function checkGameOver() {
     return false;
 }
 
+
 function expandShown(board, i, j) {
     if (board[i][j].minesAroundCount !== 0) return
     if (board[i][j].isMine) return;
+
     for (var cellI = i - 1; cellI <= i + 1; cellI++) {
         if (cellI < 0 || cellI > board.length - 1) continue
         for (var cellJ = j - 1; cellJ <= j + 1; cellJ++) {
@@ -259,6 +293,17 @@ function renderLife() {
     }
     if (gGame.numOfLife === 0) {
         elLife.innerText += NOLIFE
+    }
+}
+function renderSafe() {
+    var elSafe = document.querySelector('span.safeclicks')
+    elSafe.innerText = ''
+    for (var i = 0; i < gGame.safeClicks; i++) {
+        var strHTML = `<button class="emoji" style="font-size:20px" onclick="useSafeClick(gBoard)">${SAFE}</button>`
+        elSafe.innerHTML += strHTML;
+    }
+    if (gGame.safeClicks === 0) {
+        elSafe.innerText += NOLIFE
     }
 }
 
@@ -303,7 +348,10 @@ function createGame() {
         shownCount: 0,
         markedCount: 0,
         secsPassed: 0,
-        numOfLife: 3
+        numOfLife: 3,
+        is7Boom: false,
+        safeClicks: 3,
+        hints: 3
     }
     return game;
 }
@@ -324,7 +372,7 @@ function resetTimeout() {
 
 //only at reset game
 function resetTime() {
-    gElTimer.innerText = TIME + ' 000';
+    gElTimer.innerText = '000';
     gSec = 0;
     resetTimeout()
 }
@@ -349,7 +397,106 @@ function displayTime() {
     if (gSec > 99) {
         zeroSec = '';
     }
-    gElTimer.innerText = TIME + zeroSec + gSec;
+    gElTimer.innerText = zeroSec + gSec;
     gClockTimeout = setTimeout("displayTime()", 1000);
 }
+function sevenBoomMines(board) {
+    var cellIdx = 0;
+    for (var i = 0; i < board.length; i++) {
+        for (var j = 0; j < board[0].length; j++) {
+            cellIdx++;
+            if (cellIdx === 0) continue;
+            if (cellIdx % 7 === 0 || ((cellIdx + '').indexOf('7') > -1)) {
+                //console.log('i: ' , i, ' j: ', j, 'cellIdx: ', cellIdx);
+                board[i][j].isMine = true;
+                board[i][j].isShown = false;
+            }
+        }
+    }
+    setMinesNegsCount(gBoard);
+}
 
+function setUp7Boom() {
+    resetLevel();
+    gGame.is7Boom = true;
+}
+
+function undoMove() {
+    var lastMove = gMoves[gMoves.length - 1];
+    for (var x = 0; x < lastMove.length; x++) {
+        var currObj = lastMove[x].prevMove;
+        console.log(currObj)
+        Object.keys(currObj).forEach(function (key) {
+            gBoard[currObj.i][currObj.j][key] = currObj[key];
+        });
+    }
+    gMoves.pop();
+    renderBoard(gBoard, '.board-container')
+
+}
+
+function exposeCellForASecond(cell, board) {
+    board[cell.i][cell.j].isShown = true;
+    var elCell = document.querySelector(`.cell-${cell.i}-${cell.j}`);
+    elCell.classList.add('safe');
+    elCell.classList.remove('unrevealed');
+    elCell.classList.remove('nocontent');
+    renderCell(cell, cell.minesAroundCount)
+    setTimeout(() => {
+        board[cell.i][cell.j].isShown = false
+        elCell.classList.remove('safe');
+        elCell.classList.add('unrevealed');
+        elCell.classList.add('nocontent');
+        elCell.innerText = '';
+    }, 1000)
+}
+
+// function useHint(board){
+//     if(gGame.shownCount === 0 || !gGame.isOn) return;
+//     if(!gGame.isOn) return
+//     if (gGame.safeClicks > 0) {
+//         var emptyCells = getEmptyCells(board);
+//         var randIdx = getRandomIntInclusive(0, emptyCells.length - 1);
+//         var cell = emptyCells[randIdx];
+//         exposeCellForASecond(cell,gBoard);
+//         gGame.safeClicks--;
+//         renderSafe();
+//     }
+// }
+
+function useSafeClick(board) {
+    if (gGame.shownCount === 0 || !gGame.isOn) return;
+    if (gGame.safeClicks > 0) {
+        var emptyCells = getEmptyCells(board);
+        var randIdx = getRandomIntInclusive(0, emptyCells.length - 1);
+        var cell = emptyCells[randIdx];
+        exposeCellForASecond(cell, gBoard);
+        gGame.safeClicks--;
+        renderSafe();
+    }
+}
+
+
+
+//not yet used
+function savePrevCellCopy() {
+    if (gMoves.length > 0) {
+        var prevCell = createCell();
+        var prevI = gMoves[gMoves.length - 1].i
+        var prevJ = gMoves[gMoves.length - 1].j
+
+        Object.keys(gBoard[prevI][prevJ]).forEach(function (key) {
+            prevCell[key] = gBoard[prevI][prevJ][key];
+        });
+
+        gMoves.push([prevCell]);
+    }
+}
+//not yet used
+function createCellCopy(i, j) {
+    var savedCell = createCell();
+    Object.keys(gBoard[i][j]).forEach(function (key) {
+        savedCell[key] = gBoard[i][j][key];
+    });
+    return savedCell;
+}

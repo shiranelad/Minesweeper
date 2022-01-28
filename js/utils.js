@@ -26,7 +26,7 @@ function renderBoard(board, selector) {
       var cell = board[i][j];
       var cellClass = `cell cell-${i}-${j} `;
       cellClass += (!cell.isShown) ? 'unrevealed ' : '';
-      cellClass += (cell.isMine) ? 'mine ' : 'no-content ';
+      cellClass += (cell.isMine && cell.isShown) ? 'mine ' : 'unrevealed nocontent ';
       strHTML += `\t\t\t<td class="${cellClass}" onclick="cellClicked(this,${i},${j})" oncontextmenu="cellMarked(this,${i},${j})">
           ${(cell.isMine && cell.isShown) ? MINE : ""}</td>\n`;
     }
@@ -43,7 +43,7 @@ function renderBoard(board, selector) {
 function renderCell(location, value) {
   // Select the elCell and set the value, and classes accordingly
   var elCell = document.querySelector(`.cell-${location.i}-${location.j}`);
-  if (value === MINE) {
+  if (value === MINE) { //&& !gBoard[location.i][location.j].isShown
     elCell.classList.add('mine')
   } 
   else if (value === FLAG) {

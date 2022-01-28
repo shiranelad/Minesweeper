@@ -13,6 +13,7 @@ body{
 
 h1, h5, h4{
     margin-bottom:3px;
+    margin-top:0;
 }
 
 h4{
@@ -30,6 +31,9 @@ table{
     font-family: 'Verdana'; /* 'Gloria Hallelujah', cursive;*/
 }
 
+th{
+    font-family: 'Gloria Hallelujah', cursive;
+}
 
 td{
     /* border: 3px cadetblue solid; */
@@ -72,13 +76,19 @@ td{
     cursor:pointer;
 }
 
+
 .control{
     
     margin:auto;
-    margin-bottom:30px
+    margin-bottom:10px;
+    display:inline-table;
 }
 
-.timer , .life{
+.board-container{
+    display:inline-table;
+}
+
+.timer , .life, .safeclicks{
     font-size: 20px;
     display: inline-block;
     font-weight: bold;
@@ -97,6 +107,7 @@ td{
     content:'empty';
 }
 
+
 .unrevealed:after{
     content:'empty';
     visibility: hidden;
@@ -107,6 +118,9 @@ td{
     background-color:rgba(245, 245, 245, 0.8);
 }
 
+.safe {
+    background-color:yellow;
+}
 .mine{
     background-color: rgb(202, 47, 47);
 }
@@ -123,19 +137,36 @@ footer{
     
 }
 
+
 .status{
     border: 0;
     text-align: center;
     height:0;
-    width:40%;
-    min-width: 400px;
+    min-width:600px;
+    margin-bottom: 10px;
+    /* left:400px;
+    top:120px;
+    position:sticky; */
+}
+
+.status td ,th{
+    border: 1px  black;
+    
+    /* border-bottom: 3px #396808 solid; */
+}
+.control table{
+    border:3px #396808 solid;
+    background-color: #eee;    
+    width:700px;
+    /* max-height:500px; */
 }
 
 .empojiopt, .emoji{
     background-color:transparent;
     border:transparent;
     border:0px; 
-    font-size:60px;
+    font-size:55px;
     cursor:pointer;
     margin:0px;
+    margin-bottom: 4px;
 }
