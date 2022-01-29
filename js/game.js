@@ -17,8 +17,8 @@ var gElTimer = document.querySelector('span.timer');
 var gSec = 0;
 var gClockTimeout = 0;
 var gGame;
-var gExpandedMove = []
-var gMoves = [];
+var gExpandedMove = [] //FOR UNDO - NOT IN USE :(
+var gMoves = []; //FOR UNDO - NOT IN USE :(
 
 function initGame() {
     resetGame(4);
@@ -79,7 +79,17 @@ function createCell() {
         isMarked: false,
         i: -1,
         j: -1,
-        prevMove: []
+    }
+    return cell;
+}
+
+function createSaveCell() {
+    var cell = {
+        i: -1,
+        j: -1,
+        changedCell: '',
+        lifeNum: gGame.lifeCount,
+        safeNum: gGame.safeClicks
     }
     return cell;
 }
@@ -135,8 +145,13 @@ function cellClicked(elCell, i, j) {
     elCell.innerText = negsCount;
     elCell.classList.remove('unrevealed')
 
+    //FOR UNDO - NOT IN USE :(
     gExpandedMove = [];
-    expandShown(gBoard, i, j);
+    var savedCellMove = saveCellMove(i, j, 'isShown', gGame.numOfLife, gGame.safeClicks, elCell)
+    gExpandedMove.push(savedCellMove)
+
+
+    expandShown(gBoard, i, j, elCell);
     checkGameOver()
 
 
@@ -152,16 +167,13 @@ function cellClicked(elCell, i, j) {
                     for (var j = 0; j < gBoard[0].length; j++) {
                         var cell = gBoard[i][j];
                         if (cell.isMine) {
-                            //UNDO FNC
-                            // var prevCell = createCellCopy(i, j)
                             cell.isShown = true;
-                            // var copiedCell = createCellCopy(i, j);
-                            // copiedCell.prevMove = prevCell;
-                            // gMoves.push([copiedCell]);
-                            //
                             renderCell(cell, MINE);
                             var elCurCell = document.querySelector(`.cell-${i}-${j}`);
                             elCurCell.classList.remove('unrevealed')
+                            //FOR UNDO - NOT IN USE :(
+                            var savedCellMove = saveCellMove(cell.i, cell.j, 'isShown', gGame.numOfLife, gGame.safeClicks, elCurCell)
+                            gMoves.push([savedCellMove])
                         }
                     }
                 }
@@ -170,10 +182,16 @@ function cellClicked(elCell, i, j) {
                 var emoji = LOST
                 renderEmoji(emoji)
             }
+            //FOR UNDO - NOT IN USE :(
+            var savedCellMove = saveCellMove(i, j, 'isShown', gGame.numOfLife, gGame.safeClicks, elCurCell)
+            gMoves.push([savedCellMove])
             return;
         }
         stopTime();
     }
+    //FOR UNDO - NOT IN USE :(
+    gMoves.push(gExpandedMove)
+
 }
 
 //right click
@@ -186,10 +204,6 @@ function cellMarked(elCell, i, j) {
     //if open cell, do not allow click 
     if (gBoard[i][j].isShown) return;
 
-    //UNDO FNC
-    // var prevCell = createCellCopy(i, j)
-
-
     //first click on the cell put class flag, second click remove
     elCell.classList.toggle('flag')
     elCell.classList.toggle('unrevealed')
@@ -200,7 +214,6 @@ function cellMarked(elCell, i, j) {
         if (gGame.is7Boom) sevenBoomMines(gBoard);
         else placeMines(i, j);
     }
-
 
     startGame()
     //prevent from opening regular left click menu
@@ -217,11 +230,9 @@ function cellMarked(elCell, i, j) {
 
     checkGameOver()
 
-    // var copiedCell = createCellCopy(i, j);
-    // copiedCell.prevMove = prevCell;
-    // gMoves.push([copiedCell]);
-    // 
-
+    //FOR UNDO - NOT IN USE :(
+    var savedCellMove = saveCellMove(i, j, 'isMarked', gGame.numOfLife, gGame.safeClicks, elCell)
+    gMoves.push([savedCellMove])
 }
 
 function checkNoLife() {
@@ -265,7 +276,7 @@ function checkGameOver() {
 }
 
 
-function expandShown(board, i, j) {
+function expandShown(board, i, j, elCell) {
     if (board[i][j].minesAroundCount !== 0) return
     if (board[i][j].isMine) return;
 
@@ -278,12 +289,15 @@ function expandShown(board, i, j) {
             if (currCell.isMine) return;
             if (currCell.isMarked || currCell.isShown || currCell.isMine) continue
             currCell.isShown = true;
+            var elCurrCell = document.querySelector(`.cell-${i}-${j}`);
+            //FOR UNDO - NOT IN USE :(
+            var savedCellMove = saveCellMove(cellI, cellJ, 'isShown', gGame.numOfLife, gGame.safeClicks, elCurrCell)
+            gExpandedMove.push(savedCellMove) 
             renderCell(currCell, currCell.minesAroundCount)
-            expandShown(board, cellI, cellJ);
+            expandShown(board, cellI, cellJ, elCurrCell);
         }
     }
 }
-
 
 function renderLife() {
     var elLife = document.querySelector('span.life')
@@ -348,7 +362,7 @@ function createGame() {
         shownCount: 0,
         markedCount: 0,
         secsPassed: 0,
-        numOfLife: 3,
+        numOfLife: (gLevel.SIZE === 4) ? 1 : 3,
         is7Boom: false,
         safeClicks: 3,
         hints: 3
@@ -421,20 +435,6 @@ function setUp7Boom() {
     gGame.is7Boom = true;
 }
 
-function undoMove() {
-    var lastMove = gMoves[gMoves.length - 1];
-    for (var x = 0; x < lastMove.length; x++) {
-        var currObj = lastMove[x].prevMove;
-        console.log(currObj)
-        Object.keys(currObj).forEach(function (key) {
-            gBoard[currObj.i][currObj.j][key] = currObj[key];
-        });
-    }
-    gMoves.pop();
-    renderBoard(gBoard, '.board-container')
-
-}
-
 function exposeCellForASecond(cell, board) {
     board[cell.i][cell.j].isShown = true;
     var elCell = document.querySelector(`.cell-${cell.i}-${cell.j}`);
@@ -451,19 +451,6 @@ function exposeCellForASecond(cell, board) {
     }, 1000)
 }
 
-// function useHint(board){
-//     if(gGame.shownCount === 0 || !gGame.isOn) return;
-//     if(!gGame.isOn) return
-//     if (gGame.safeClicks > 0) {
-//         var emptyCells = getEmptyCells(board);
-//         var randIdx = getRandomIntInclusive(0, emptyCells.length - 1);
-//         var cell = emptyCells[randIdx];
-//         exposeCellForASecond(cell,gBoard);
-//         gGame.safeClicks--;
-//         renderSafe();
-//     }
-// }
-
 function useSafeClick(board) {
     if (gGame.shownCount === 0 || !gGame.isOn) return;
     if (gGame.safeClicks > 0) {
@@ -476,27 +463,54 @@ function useSafeClick(board) {
     }
 }
 
-
-
-//not yet used
-function savePrevCellCopy() {
-    if (gMoves.length > 0) {
-        var prevCell = createCell();
-        var prevI = gMoves[gMoves.length - 1].i
-        var prevJ = gMoves[gMoves.length - 1].j
-
-        Object.keys(gBoard[prevI][prevJ]).forEach(function (key) {
-            prevCell[key] = gBoard[prevI][prevJ][key];
-        });
-
-        gMoves.push([prevCell]);
-    }
-}
-//not yet used
-function createCellCopy(i, j) {
-    var savedCell = createCell();
-    Object.keys(gBoard[i][j]).forEach(function (key) {
-        savedCell[key] = gBoard[i][j][key];
-    });
+//UNDO FUNCTION SECTION - NOT IN USE :()
+function saveCellMove(i, j, changedField, lifeCount, safeCount, elCell) {
+    var savedCell = createSaveCell();
+    savedCell.i = i;
+    savedCell.j = j;
+    savedCell.changedCell = changedField;
+    savedCell.lifeNum = lifeCount;
+    savedCell.safeNum = safeCount;
+    savedCell.elCell = elCell;
     return savedCell;
+}
+
+function undoMove() {
+    var lastMove = gMoves[gMoves.length - 1];
+    for (var x = lastMove.length - 1; x >= 0; x--) {
+        var currObj = lastMove[x];
+        console.log(currObj);
+        var i = currObj.i
+        var j = currObj.j
+        var changedCell = currObj.changedCell
+        var elCell = currObj.elCell
+        gGame.numOfLife = currObj.lifeCount;
+        gGame.safeClicks = currObj.safeCount;
+        console.log(i, j, changedCell, elCell)
+        if (changedCell === 'isMarked') {
+            if (!gBoard[i][j].isMarked) {
+                elCell.innerText = FLAG;
+                gBoard[i][j].isMarked = true;
+            }
+            else {
+                elCell.innerText = '';
+                gBoard[i][j].isMarked = false;
+            }
+            elCell.classList.toggle('flag')
+            elCell.classList.toggle('unrevealed')
+            elCell.classList.toggle('nocontent');
+        }
+        else if (changedCell === 'isShown') {
+            gBoard[i][j].isShown = false;
+            elCell.innerText = (gBoard[i][j].isShown) ? gBoard[i][j].minesAroundCount : ''
+            elCell.classList.add('unrevealed')
+            elCell.classList.add('nocontent');
+            if (gBoard[i][j] === MINE) {
+                elCell.innerText = ''
+                elCell.classList.remove('mine')
+            }
+        }
+        gMoves.pop();
+        renderBoard(gBoard, '.board-container')
+    }
 }
